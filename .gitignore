@@ -1,0 +1,27 @@
+# Data — never commit raw or processed datasets
+data/
+*.parquet
+*.csv
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.python-version
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ML experiment tracking
+mlruns/
+mlartifacts/
+
+# Env / secrets (odds API keys, etc.)
+.env
+.env.*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
