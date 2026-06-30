@@ -70,8 +70,8 @@ Full table: [`docs/results.md`](docs/results.md) · calibration:
 |---|---|---|
 | Base rate | 0.6813 | 57.7% |
 | Elo | 0.6165 | 65.8% |
-| **Logistic** | **0.6098** | **66.4%** |
-| XGBoost | 0.6222 | 65.6% |
+| **Logistic** (Elo + form/rest + roster) | **0.6077** | **66.8%** |
+| XGBoost | 0.6213 | 65.9% |
 
 Regenerate: `PYTHONPATH=src uv run python scripts/results_table.py`
 (also `calibration_report.py`, `shap_report.py`).

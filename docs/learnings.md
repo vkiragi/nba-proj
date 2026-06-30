@@ -210,3 +210,29 @@ then convert back with `prob_to_american`. After the fix, the fake edge vanished
   expected efficient-market outcome, not a failure. See `docs/betting.md`.
 - Caveats: consensus (not timestamped closing) lines, so edge-vs-consensus not
   true CLV; 2006-2018 coverage only; idealized costs.
+
+---
+
+## Phase 2 (v2) — Player data → leakage-safe roster strength
+
+### Why nba_api beat the Kaggle player file
+The Kaggle player box scores stop in 2018 — so a feature built on them would be
+NaN for every current team and couldn't help the live demo. Pulling player game
+logs from `nba_api` (PlayerGameLogs) instead covers 2004-2026 (matching our
+spine, same game_id/team_id/player_id space) — 553,716 player-games — so the
+feature helps live predictions too. Lesson: match a new data source's coverage
+to where you actually need predictions.
+
+### The feature, and its leakage trap
+Roster strength going into game G = the minutes-weighted average of as-of player
+ratings (rolling plus/minus) for the lineup that played the team's PREVIOUS game.
+The trap: using "who played tonight" from the box score leaks availability (the
+injury trap). Using the previous game's lineup is a leakage-safe proxy for who'll
+play, verified by a truncate-and-rebuild test.
+
+### Honest impact
+Modest but real, and leakage-safe: Logistic 0.6098 → **0.6077**, XGBoost 0.6213.
+98.4% coverage. On the betting overlap, model log loss improved 0.5983 → 0.5965
+(closer to the market's 0.5799) — still no betting edge after vig. What's missing
+for a bigger gain is same-day injury availability (needs timestamped injury
+reports, which box scores don't provide).

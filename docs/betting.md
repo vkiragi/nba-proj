@@ -6,7 +6,7 @@ Out-of-fold logistic predictions joined to historical odds: **12751 games** with
 
 | | Log loss |
 |---|---|
-| Our model | 0.5983 |
+| Our model | 0.5965 |
 | The market (de-vigged) | 0.5799 |
 
 The market beats our model. This is the expected result — closing/consensus lines are extremely hard to beat.
@@ -15,11 +15,11 @@ The market beats our model. This is the expected result — closing/consensus li
 
 | Min edge | Bets | Bet rate | Win rate | ROI |
 |---|---|---|---|---|
-| 0% | 12751 | 100.0% | 44.4% | -5.0% |
-| 2% | 9990 | 78.3% | 43.4% | -4.4% |
-| 5% | 6477 | 50.8% | 42.0% | -3.6% |
-| 8% | 3911 | 30.7% | 41.1% | -0.3% |
-| 10% | 2767 | 21.7% | 39.6% | -1.2% |
+| 0% | 12751 | 100.0% | 44.5% | -5.2% |
+| 2% | 9892 | 77.6% | 43.4% | -5.2% |
+| 5% | 6222 | 48.8% | 42.2% | -3.5% |
+| 8% | 3695 | 29.0% | 40.7% | +0.2% |
+| 10% | 2539 | 19.9% | 39.1% | -1.7% |
 
 ## Honest conclusion
 

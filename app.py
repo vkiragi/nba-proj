@@ -106,9 +106,9 @@ with predict_tab:
         st.markdown("**Why** (the features driving this):")
         st.dataframe(
             {
-                "": ["Elo rating", "Form (last-10 pt diff)", "Season win %"],
-                home_name: [f"{h.elo:.0f}", f"{h.roll_pdiff_10:+.1f}", f"{h.win_pct_std:.0%}"],
-                away_name: [f"{a.elo:.0f}", f"{a.roll_pdiff_10:+.1f}", f"{a.win_pct_std:.0%}"],
+                "": ["Elo rating", "Form (last-10 pt diff)", "Season win %", "Roster strength (recent +/-)"],
+                home_name: [f"{h.elo:.0f}", f"{h.roll_pdiff_10:+.1f}", f"{h.win_pct_std:.0%}", f"{res['home_roster']:+.1f}"],
+                away_name: [f"{a.elo:.0f}", f"{a.roll_pdiff_10:+.1f}", f"{a.win_pct_std:.0%}", f"{res['away_roster']:+.1f}"],
             },
             hide_index=True,
             width="stretch",

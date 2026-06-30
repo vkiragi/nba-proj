@@ -4,10 +4,10 @@ Walk-forward (train seasons 1..k, test k+1), aggregated over all held-out games 
 
 | Model | Log loss | Brier | Accuracy | n |
 |---|---|---|---|---|
-| Logistic (Elo + form/rest) | 0.6098 | 0.2111 | 0.664 | 22798 |
+| Logistic (Elo + form/rest/roster) | 0.6077 | 0.2101 | 0.668 | 22798 |
 | Elo (home_adv=50) | 0.6165 | 0.2140 | 0.658 | 22798 |
-| XGBoost | 0.6222 | 0.2161 | 0.656 | 22798 |
-| XGBoost (calibrated) | 0.6494 | 0.2171 | 0.653 | 22798 |
+| XGBoost | 0.6213 | 0.2155 | 0.659 | 22798 |
+| XGBoost (calibrated) | 0.6461 | 0.2162 | 0.652 | 22798 |
 | Base rate (home win %) | 0.6813 | 0.2441 | 0.577 | 22798 |
 
 ## Reading this

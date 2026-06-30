@@ -18,7 +18,8 @@ import pandas as pd
 
 from nba_pred.features.build import explode_to_team_long
 from nba_pred.features.elo import HOME_ADV, START_RATING, expected_home, final_ratings
-from nba_pred.models.features import MODEL_FEATURES, build_model_frame
+from nba_pred.features.roster import current_roster_strength
+from nba_pred.models.features import DEFAULT_PLAYER_STATS, MODEL_FEATURES, build_model_frame
 from nba_pred.models.logistic import fit_serving_model
 from nba_pred.models.xgb import fit_final_model
 
@@ -78,6 +79,12 @@ class Predictor:
         self.latest_season = sorted(games["season"].unique())[-1]
         self.states = compute_team_states(games)
         self.teams = team_lookup()
+        # Each team's current roster strength (latest lineup), for serving.
+        self.roster = (
+            current_roster_strength(pd.read_parquet(DEFAULT_PLAYER_STATS))
+            if DEFAULT_PLAYER_STATS.exists()
+            else {}
+        )
         # Fit each model on ALL games so we can show one prediction per model
         # plus an ensemble. (Elo needs no fit — it's read from current ratings.)
         frame = build_model_frame(games)
@@ -121,6 +128,8 @@ class Predictor:
             "away_roll_pdiff_5": a.roll_pdiff_5,
             "away_roll_pdiff_10": a.roll_pdiff_10,
             "away_win_pct_std": a.win_pct_std,
+            "home_roster_strength": self.roster.get(home_id, float("nan")),
+            "away_roster_strength": self.roster.get(away_id, float("nan")),
         }
         X = pd.DataFrame([row])[MODEL_FEATURES]
 
@@ -137,4 +146,6 @@ class Predictor:
             "p_away": 1.0 - ensemble,
             "home": h,
             "away": a,
+            "home_roster": self.roster.get(home_id, float("nan")),
+            "away_roster": self.roster.get(away_id, float("nan")),
         }

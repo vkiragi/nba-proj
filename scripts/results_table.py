@@ -34,7 +34,7 @@ def main() -> None:
     specs = [
         ("Base rate (home win %)", games, base_rate_predict),
         ("Elo (home_adv=50)", games, elo_predict),
-        ("Logistic (Elo + form/rest)", frame, make_logistic_predict()),
+        ("Logistic (Elo + form/rest/roster)", frame, make_logistic_predict()),
         ("XGBoost", frame, make_xgb_predict()),
         ("XGBoost (calibrated)", frame, make_calibrated_predict(make_xgb_predict(), "isotonic")),
     ]
