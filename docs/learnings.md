@@ -134,3 +134,50 @@ running the online updates through prior games — `elo_predict` runs `compute_e
 over train+test together and reads the ratings each test game goes in with
 (never its own result). Logistic/XGBoost will use a real `fit`/`predict` split
 through the same harness.
+
+---
+
+## Phase 2/3 — Features, models, calibration, SHAP
+
+### The as-of join, and a real leakage bug I caught in my own code
+Rest/rolling features are per-team-per-game, but the spine is per-game. The
+transform: explode to per-team-long → compute features with
+`groupby(["team_id","season"]).shift(1)` → join back as home_/away_ pairs.
+**Bug found:** `groupby(...)["x"].shift(1).rolling(N)` — the `shift(1)` returns
+an *ungrouped* Series, so the `.rolling()` bled across team boundaries (the first
+game of a team averaged in the previous team's games). Fix: wrap shift+roll in a
+single grouped `.transform(...)`. The empirical leakage test (truncate-and-rebuild)
+plus per-feature unit tests catch exactly this class of bug.
+
+### Leakage traps that bit or nearly bit
+- `rolling("7D")` defaults to `closed="right"` → includes the current game.
+  Must be `closed="left"`.
+- `expanding().mean()` for win pct without `shift(1)` → includes the current
+  result = direct label leakage.
+- `games_last_7` empty window sums to NaN; a *count* of prior games is genuinely
+  0 (not "unknown"), so fill it — distinct from rest_days, which stays NaN.
+
+### Honest model results (walk-forward, 22,798 held-out games)
+| Model | Log loss | Accuracy |
+|---|---|---|
+| Base rate (home %) | 0.6813 | 57.7% |
+| Elo (home_adv=50) | 0.6165 | 65.8% |
+| **Logistic (Elo + form/rest)** | **0.6098** | **66.4%** |
+| XGBoost | 0.6222 | 65.6% |
+| XGBoost (calibrated) | 0.6494 | 65.3% |
+
+- **Logistic wins.** The as-of form/rest features add real signal on top of Elo.
+- **XGBoost loses to logistic out of the box** — on a small, smooth feature set
+  it overfits. Fancier != better (exactly the plan's warning).
+- **Calibration didn't help**: the raw models are already well-calibrated
+  (reliability curves hug the diagonal — `docs/calibration.png`); isotonic
+  worsens log loss at the probability extremes. The *finding* (already
+  calibrated) is the deliverable, not a fancier number.
+
+### SHAP doubles as a leakage check
+Feature importance (mean |SHAP|): home_elo & away_elo dominate (team strength),
+then rolling point-diff (form), then win%, then rest; back-to-back/games-in-7
+matter least. Top feature holds only **24.7%** of total importance — no single
+feature dominates, which is the no-leakage signal we want (a feature at 80%+ would
+scream leakage). Directions are sensible too: high home_elo pushes toward a home
+win. See `docs/shap_summary.png`.

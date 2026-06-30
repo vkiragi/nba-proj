@@ -47,6 +47,28 @@ uv sync --extra dev      # create env (Python 3.12) + install deps
 uv run pytest            # run tests
 ```
 
+## Results (walk-forward, leakage-free)
+
+Best model: **logistic regression on Elo + as-of form/rest features**, beating a
+strong Elo baseline on log loss over 22,798 held-out games (2007-08 → 2025-26).
+Full table: [`docs/results.md`](docs/results.md) · calibration:
+[`docs/calibration.png`](docs/calibration.png) · explainability:
+[`docs/shap_summary.png`](docs/shap_summary.png) · decisions log:
+[`docs/learnings.md`](docs/learnings.md).
+
+| Model | Log loss | Accuracy |
+|---|---|---|
+| Base rate | 0.6813 | 57.7% |
+| Elo | 0.6165 | 65.8% |
+| **Logistic** | **0.6098** | **66.4%** |
+| XGBoost | 0.6222 | 65.6% |
+
+Regenerate: `PYTHONPATH=src uv run python scripts/results_table.py`
+(also `calibration_report.py`, `shap_report.py`).
+
 ## Status
 
-Phase 0 (scaffold) complete. Next: Phase 1 — land one season of games in parquet.
+Done: ingestion, leakage-safe features, Elo/logistic/XGBoost through a
+walk-forward harness, calibration, SHAP — all leakage-tested.
+**Next:** betting backtest (needs an odds-data source — see
+`src/nba_pred/eval/betting.py`) and deployment (FastAPI service).
