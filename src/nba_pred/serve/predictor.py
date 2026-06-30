@@ -17,9 +17,10 @@ from pathlib import Path
 import pandas as pd
 
 from nba_pred.features.build import explode_to_team_long
-from nba_pred.features.elo import START_RATING, final_ratings
+from nba_pred.features.elo import HOME_ADV, START_RATING, expected_home, final_ratings
 from nba_pred.models.features import MODEL_FEATURES, build_model_frame
 from nba_pred.models.logistic import fit_serving_model
+from nba_pred.models.xgb import fit_final_model
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_GAMES = REPO_ROOT / "data" / "processed" / "games.parquet"
@@ -77,7 +78,11 @@ class Predictor:
         self.latest_season = sorted(games["season"].unique())[-1]
         self.states = compute_team_states(games)
         self.teams = team_lookup()
-        self.model = fit_serving_model(build_model_frame(games))
+        # Fit each model on ALL games so we can show one prediction per model
+        # plus an ensemble. (Elo needs no fit — it's read from current ratings.)
+        frame = build_model_frame(games)
+        self.logistic = fit_serving_model(frame)
+        self.xgb = fit_final_model(frame)
 
     def current_teams(self) -> list[tuple[int, str]]:
         """(team_id, name) for teams active in the latest season, sorted by name."""
@@ -92,7 +97,14 @@ class Predictor:
         home_rest_days: int = DEFAULT_REST_DAYS,
         away_rest_days: int = DEFAULT_REST_DAYS,
     ) -> dict:
-        """Return P(home win) and the feature context behind it."""
+        """Return P(home win) from each model plus an ensemble, and the context.
+
+        Returns:
+            models: {"Elo": p, "Logistic": p, "XGBoost": p} — one per model
+            ensemble: mean of the three (the headline)
+            p_home / p_away: the ensemble (kept for convenience)
+            home / away: the TeamState behind the prediction
+        """
         h, a = self.states[home_id], self.states[away_id]
         row = {
             "home_elo": h.elo,
@@ -111,5 +123,18 @@ class Predictor:
             "away_win_pct_std": a.win_pct_std,
         }
         X = pd.DataFrame([row])[MODEL_FEATURES]
-        p_home = float(self.model.predict_proba(X)[0, 1])
-        return {"p_home": p_home, "p_away": 1.0 - p_home, "home": h, "away": a}
+
+        models = {
+            "Elo": expected_home(h.elo, a.elo, HOME_ADV),
+            "Logistic": float(self.logistic.predict_proba(X)[0, 1]),
+            "XGBoost": float(self.xgb.predict_proba(X)[0, 1]),
+        }
+        ensemble = sum(models.values()) / len(models)
+        return {
+            "models": models,
+            "ensemble": ensemble,
+            "p_home": ensemble,
+            "p_away": 1.0 - ensemble,
+            "home": h,
+            "away": a,
+        }

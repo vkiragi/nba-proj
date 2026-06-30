@@ -80,12 +80,27 @@ with predict_tab:
             id_by_name[home_name], id_by_name[away_name],
             home_rest_days=home_rest, away_rest_days=away_rest,
         )
-        p_home = res["p_home"]
+        models = res["models"]
+        ensemble = res["ensemble"]
 
         st.subheader(f"{home_name} (home) vs {away_name}")
-        st.metric(f"P({home_name} win)", f"{p_home:.1%}")
-        st.progress(p_home)
-        st.caption(f"P({away_name} win): {res['p_away']:.1%}")
+
+        # Headline: the ensemble (average of all models).
+        st.metric(f"Ensemble — P({home_name} win)", f"{ensemble:.1%}")
+        st.progress(ensemble)
+        st.caption(f"P({away_name} win): {1 - ensemble:.1%}  ·  average of the models below")
+
+        # One prediction per model.
+        st.markdown("**Each model's prediction** (P(home win)):")
+        cols = st.columns(len(models) + 1)
+        for col, (name, p) in zip(cols, models.items()):
+            col.metric(name, f"{p:.1%}")
+        cols[-1].metric("Ensemble", f"{ensemble:.1%}")
+        st.caption(
+            "Elo = team strength only · Logistic = best single model (Elo + form/rest) · "
+            "XGBoost = gradient boosting · Ensemble = their average. "
+            "They mostly agree — Logistic is the most accurate in backtests."
+        )
 
         h, a = res["home"], res["away"]
         st.markdown("**Why** (the features driving this):")
