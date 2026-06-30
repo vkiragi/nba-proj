@@ -46,6 +46,15 @@ except FileNotFoundError:
     )
     st.stop()
 
+st.info(
+    f"**Heads up:** predictions use team strengths frozen at the end of the data — "
+    f"**{predictor.last_date.date()} ({predictor.latest_season} regular season)**. "
+    "This estimates a hypothetical matchup at those strengths; it is **not** a live "
+    "forecast of a scheduled future game and doesn't know about later trades, the "
+    "draft, or injuries. Re-run ingestion to refresh.",
+    icon="📅",
+)
+
 predict_tab, story_tab = st.tabs(["🔮 Predict a matchup", "📊 How it works & results"])
 
 with predict_tab:
