@@ -66,9 +66,17 @@ Full table: [`docs/results.md`](docs/results.md) · calibration:
 Regenerate: `PYTHONPATH=src uv run python scripts/results_table.py`
 (also `calibration_report.py`, `shap_report.py`).
 
+## Betting backtest (vs the market)
+
+Our calibrated probabilities vs historical moneyline odds (2006-2018): the
+**market beats our model** (log loss 0.5799 vs 0.5983) and flat-stake ROI is
+negative at every edge threshold — **no edge after the vig**, the correct
+efficient-market result. Full report + caveats: [`docs/betting.md`](docs/betting.md).
+Build: `PYTHONPATH=src uv run python -m nba_pred.ingest.odds && PYTHONPATH=src uv run python scripts/betting_report.py`
+(needs the Kaggle odds CSVs in `data/raw/odds/`).
+
 ## Status
 
 Done: ingestion, leakage-safe features, Elo/logistic/XGBoost through a
-walk-forward harness, calibration, SHAP — all leakage-tested.
-**Next:** betting backtest (needs an odds-data source — see
-`src/nba_pred/eval/betting.py`) and deployment (FastAPI service).
+walk-forward harness, calibration, SHAP, and an honest betting backtest — all
+leakage-tested (34 tests). **Next:** deployment (FastAPI inference service).

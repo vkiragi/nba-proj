@@ -181,3 +181,32 @@ matter least. Top feature holds only **24.7%** of total importance — no single
 feature dominates, which is the no-leakage signal we want (a feature at 80%+ would
 scream leakage). Directions are sensible too: high home_elo pushes toward a home
 win. See `docs/shap_summary.png`.
+
+---
+
+## Phase 4 — Betting backtest (vs the market)
+
+Source: ehallmar's Kaggle "NBA Historical Stats and Betting Data" (moneyline +
+games + teams). Their team_ids are the official NBA ids we use; game_id matches
+ours when zero-padded to 10 chars. Coverage ~2006-2018, 95.6% of in-era games.
+
+### A "profitable system" that was actually a data bug (the best story here)
+First run showed **+6.3% ROI** at high edge thresholds — which should set off
+alarms (the plan: beating the market means you're leaking or buggy until proven
+otherwise). Investigation found two issues:
+1. A divide-by-zero from odds of `0` / `-1` / `-8` — impossible American lines.
+2. The root cause: I aggregated multiple books by taking the **median of American
+   odds**. American odds are *discontinuous* around +/-100 (they jump from +100 to
+   -100 with an impossible gap between), so `median(-116, 100) = -8` — a fabricated
+   line that implied a ~100x payout and faked the profit.
+
+**Fix:** never average American odds. Aggregate in probability space (continuous),
+then convert back with `prob_to_american`. After the fix, the fake edge vanished.
+
+### The honest result
+- Market log loss **0.5799** beats our model's **0.5983** on the same games.
+- Flat-stake ROI is **negative at every edge threshold** (-5.0% to -0.3%).
+- Conclusion: **no exploitable edge against the market after vig** — the correct,
+  expected efficient-market outcome, not a failure. See `docs/betting.md`.
+- Caveats: consensus (not timestamped closing) lines, so edge-vs-consensus not
+  true CLV; 2006-2018 coverage only; idealized costs.
