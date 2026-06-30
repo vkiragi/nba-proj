@@ -39,15 +39,19 @@ def walk_forward(
     model_name: str = "model",
     min_train: int = 3,
     season_col: str = "season",
-) -> tuple[pd.DataFrame, Scores]:
+    return_predictions: bool = False,
+):
     """Run a model through walk-forward validation.
 
-    Returns (per_season_table, aggregate_scores_over_all_held_out_games).
+    Returns (per_season_table, aggregate_scores). If return_predictions=True,
+    also returns a third element: a DataFrame of out-of-fold predictions with
+    columns [game_id, season, home_win, p] for plotting calibration etc.
     """
     seasons = sorted(games[season_col].unique())
     rows: list[dict] = []
     all_y: list[int] = []
     all_p: list[float] = []
+    pred_frames: list[pd.DataFrame] = []
 
     for train_seasons, test_season in season_splits(seasons, min_train):
         train = games[games[season_col].isin(train_seasons)]
@@ -70,9 +74,22 @@ def walk_forward(
         )
         all_y.extend(test["home_win"].tolist())
         all_p.extend(p.tolist())
+        if return_predictions:
+            pred_frames.append(
+                pd.DataFrame(
+                    {
+                        "game_id": test["game_id"].to_numpy(),
+                        "season": test_season,
+                        "home_win": test["home_win"].to_numpy(),
+                        "p": p,
+                    }
+                )
+            )
 
     per_season = pd.DataFrame(rows)
     aggregate = evaluate(all_y, all_p)
+    if return_predictions:
+        return per_season, aggregate, pd.concat(pred_frames, ignore_index=True)
     return per_season, aggregate
 
 
