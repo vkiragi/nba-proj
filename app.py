@@ -138,6 +138,10 @@ with story_tab:
         st.image(str(cal))
 
     st.header("What drives predictions (SHAP)")
+    st.caption(
+        "**SHAP** (from game theory's Shapley values) splits a prediction into how "
+        "much each feature pushed it up or down — opening the model's black box."
+    )
     st.markdown(
         "Team strength (Elo) dominates, then recent form, then rest. No single "
         "feature dominates — a sign there's no leakage."
@@ -147,4 +151,8 @@ with story_tab:
         st.image(str(shap_img))
 
     st.header("Betting backtest vs the market")
+    st.caption(
+        "**Vig** = the sportsbook's built-in commission. At -110 odds you must win "
+        "~52.4% (not 50%) of bets just to break even — the house edge you have to beat first."
+    )
     st.markdown(_read(DOCS / "betting.md"))
