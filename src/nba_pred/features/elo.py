@@ -78,3 +78,20 @@ def compute_elo(games: pd.DataFrame, k: float = K, home_adv: float = HOME_ADV) -
     games["home_elo"] = home_elos
     games["away_elo"] = away_elos
     return games
+
+
+def final_ratings(games: pd.DataFrame, k: float = K, home_adv: float = HOME_ADV) -> dict[int, float]:
+    """Each team's current Elo AFTER its most recent game — for live prediction.
+
+    Re-runs the same chronological loop as compute_elo and returns the final
+    rating dict (team_id -> rating).
+    """
+    games = games.sort_values("game_date")
+    ratings: dict[int, float] = {}
+    for row in games.itertuples(index=False):
+        elo_home = ratings.get(row.home_team_id, START_RATING)
+        elo_away = ratings.get(row.away_team_id, START_RATING)
+        change = k * (row.home_win - expected_home(elo_home, elo_away, home_adv))
+        ratings[row.home_team_id] = elo_home + change
+        ratings[row.away_team_id] = elo_away - change
+    return ratings

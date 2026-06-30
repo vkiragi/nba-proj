@@ -47,6 +47,16 @@ uv sync --extra dev      # create env (Python 3.12) + install deps
 uv run pytest            # run tests
 ```
 
+## Frontend (interactive demo)
+
+A Streamlit app: pick two teams → calibrated win probability, plus a dashboard of
+the honest results (baselines table, calibration curve, SHAP, betting backtest).
+
+```bash
+uv sync --extra app
+PYTHONPATH=src uv run streamlit run app.py
+```
+
 ## Results (walk-forward, leakage-free)
 
 Best model: **logistic regression on Elo + as-of form/rest features**, beating a
@@ -78,5 +88,6 @@ Build: `PYTHONPATH=src uv run python -m nba_pred.ingest.odds && PYTHONPATH=src u
 ## Status
 
 Done: ingestion, leakage-safe features, Elo/logistic/XGBoost through a
-walk-forward harness, calibration, SHAP, and an honest betting backtest — all
-leakage-tested (34 tests). **Next:** deployment (FastAPI inference service).
+walk-forward harness, calibration, SHAP, an honest betting backtest, and a
+Streamlit frontend — all leakage-tested (37 tests). **Next (optional):**
+Dockerize + deploy the app / a FastAPI service.
