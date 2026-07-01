@@ -27,7 +27,29 @@ from nba_pred.serve import Predictor
 REPO = Path(__file__).resolve().parent
 DOCS = REPO / "docs"
 
-st.set_page_config(page_title="NBA Win Probability", page_icon="🏀", layout="centered")
+st.set_page_config(page_title="NBA Win Probability", page_icon="🏀", layout="wide")
+
+# The default body/heading sizes are fine; only the small caption/help text was
+# too small to read comfortably. Bump just the captions (Streamlit has no
+# config.toml knob for this, so inject a little CSS). Everything else unchanged.
+st.markdown(
+    """
+    <style>
+      /* Roomier than the default 'centered' width, but capped so it doesn't
+         sprawl edge-to-edge on a large monitor. */
+      .block-container {
+          max-width: 1100px;
+          padding-left: 3rem;
+          padding-right: 3rem;
+      }
+      .stCaption, [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {
+          font-size: 0.95rem;
+          line-height: 1.5;
+      }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 
 
 @st.cache_resource
@@ -115,8 +137,10 @@ with predict_tab:
             col.metric(name, f"{p:.1%}")
         cols[-1].metric("Ensemble", f"{ensemble:.1%}")
         st.caption(
-            "Elo = team strength only · Logistic = best single model (Elo + form/rest) · "
-            "XGBoost = gradient boosting · Ensemble = their average. "
+            "**Elo** — team strength only  \n"
+            "**Logistic** — best single model (Elo + form/rest)  \n"
+            "**XGBoost** — gradient boosting  \n"
+            "**Ensemble** — their average  \n"
             "They mostly agree — Logistic is the most accurate in backtests."
         )
 
@@ -189,15 +213,35 @@ with season_tab:
             .agg(predicted=("p_home", "mean"), actual=("home_win", "mean"), games=("home_win", "size"))
             .reset_index(drop=True)
         )
-        cal["Predicted"] = cal["predicted"]
-        cal["Actual"] = cal["actual"]
-        chart_df = cal.set_index("Predicted")[["Actual"]].copy()
-        chart_df["Perfect"] = chart_df.index  # the y=x reference line
-        st.line_chart(chart_df, height=300)
+
+        import altair as alt
+
+        base = alt.Chart(cal).encode(
+            x=alt.X("predicted:Q", title="Predicted home-win probability",
+                    scale=alt.Scale(domain=[0, 1]), axis=alt.Axis(format="%")),
+        )
+        perfect = (
+            alt.Chart(pd.DataFrame({"v": [0, 1]}))
+            .mark_line(strokeDash=[6, 4], color="gray")
+            .encode(x=alt.X("v:Q", scale=alt.Scale(domain=[0, 1])),
+                    y=alt.Y("v:Q", scale=alt.Scale(domain=[0, 1])))
+        )
+        actual = base.mark_line(point=True, color="#e03a3e").encode(
+            y=alt.Y("actual:Q", title="Actual home-win rate",
+                    scale=alt.Scale(domain=[0, 1]), axis=alt.Axis(format="%")),
+            tooltip=[
+                alt.Tooltip("predicted:Q", title="Predicted", format=".0%"),
+                alt.Tooltip("actual:Q", title="Actual", format=".0%"),
+                alt.Tooltip("games:Q", title="Games"),
+            ],
+        )
+        # No .interactive() and default selection off -> chart is static (not draggable).
+        chart = (perfect + actual).properties(height=320).configure_view(strokeOpacity=0)
+        st.altair_chart(chart, use_container_width=True)
         st.caption(
-            "**Actual** = real home-win rate in each predicted bucket. "
-            "**Perfect** = the ideal (predicted == actual). The closer Actual hugs "
-            "Perfect, the better calibrated the model is."
+            "**Red line** = real home-win rate in each predicted bucket. "
+            "**Dashed line** = the ideal (predicted == actual). The closer red hugs "
+            "the dashed line, the better calibrated the model is."
         )
 
         st.divider()
@@ -213,7 +257,9 @@ with season_tab:
         disp["Result"] = disp.apply(
             lambda r: f"{r['home']} {int(r['home_pts'])}–{int(r['away_pts'])} {r['away']}", axis=1
         )
-        disp["Predicted P(home win)"] = disp["p_home"]
+        # ProgressColumn prints the raw value, so store it as 0–100 (not 0–1)
+        # for the "%.0f%%" format to read correctly.
+        disp["Predicted P(home win)"] = disp["p_home"] * 100
         disp["Actual"] = disp["home_win"].map({1: "Home won", 0: "Away won"})
         disp["✓"] = disp["correct"].map({1: "✓", 0: "✗"})
         disp["surprise"] = (disp["home_win"] - disp["p_home"]).abs()  # how far off the call was
@@ -237,7 +283,7 @@ with season_tab:
             column_config={
                 "Date": st.column_config.DateColumn(format="MMM D, YYYY"),
                 "Predicted P(home win)": st.column_config.ProgressColumn(
-                    format="%.0f%%", min_value=0.0, max_value=1.0
+                    format="%.0f%%", min_value=0.0, max_value=100.0
                 ),
             },
         )
