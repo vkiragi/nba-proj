@@ -3,7 +3,12 @@
 import pandas as pd
 import pytest
 
-from nba_pred.features.elo import START_RATING, compute_elo, expected_home
+from nba_pred.features.elo import (
+    START_RATING,
+    compute_elo,
+    expected_home,
+    mov_multiplier,
+)
 
 
 # --- expected_home: the win-probability formula -----------------------------
@@ -25,6 +30,23 @@ def test_400_point_gap_is_about_91_percent():
 def test_expectation_is_symmetric():
     # P(home) + P(home with teams swapped) == 1, with no home edge.
     assert expected_home(1600, 1400, home_adv=0) + expected_home(1400, 1600, home_adv=0) == pytest.approx(1.0)
+
+
+# --- mov_multiplier: margin scaling + autocorrelation correction ------------
+
+def test_mov_multiplier_grows_with_margin():
+    # A bigger blowout produces a larger update multiplier (evenly matched teams).
+    small = mov_multiplier(margin=1, winner_elo_diff=0)
+    big = mov_multiplier(margin=25, winner_elo_diff=0)
+    assert big > small
+
+
+def test_mov_multiplier_autocorrelation_dampens_favorites():
+    # Same margin: a heavily favored winner gains LESS than an underdog winner.
+    # (The denominator grows with the winner's pre-game rating advantage.)
+    favorite = mov_multiplier(margin=10, winner_elo_diff=300)
+    underdog = mov_multiplier(margin=10, winner_elo_diff=-300)
+    assert favorite < underdog
 
 
 # --- compute_elo: the update + the leakage guarantee ------------------------

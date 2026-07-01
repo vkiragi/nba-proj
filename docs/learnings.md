@@ -236,3 +236,43 @@ Modest but real, and leakage-safe: Logistic 0.6098 → **0.6077**, XGBoost 0.621
 (closer to the market's 0.5799) — still no betting edge after vig. What's missing
 for a bigger gain is same-day injury availability (needs timestamped injury
 reports, which box scores don't provide).
+
+---
+
+## Phase 3 (v2) — Margin-of-victory Elo (upgrade the strongest feature)
+
+### Why upgrade Elo specifically
+SHAP said `home_elo`/`away_elo` are the dominant features (~24% each). Vanilla
+Elo throws away the single strongest signal of *how* dominant a result was: a
+1-point squeaker and a 30-point blowout move ratings by exactly the same amount.
+Improving Elo is a force multiplier — it lifts the Elo baseline AND every model
+that consumes Elo as a feature, from one change to `elo.py`.
+
+### FiveThirtyEight's MOV multiplier (and its autocorrelation trap)
+The rating update is scaled by `((margin + 3)^0.8) / (7.5 + 0.006 · elo_diff)`.
+Two parts do the work:
+- **Numerator** grows with margin (with diminishing returns via the 0.8 power) —
+  blowouts move ratings more.
+- **Denominator** is the non-obvious bit: `elo_diff` is the *winner's* pre-game
+  rating advantage. A favorite that wins big gains LESS than an underdog winning
+  by the same margin. Without this correction, strong teams run up the score
+  against weak ones and their ratings inflate without bound (positive feedback).
+  This is the classic MOV-Elo autocorrelation bug — measured and corrected, not
+  assumed away. A unit test asserts both properties.
+
+### The rating scale shifts, so re-tune home_adv
+MOV changes the distribution of rating updates, which nudged the optimal
+home-court bonus from **50 → 60**. Lesson: a change deep in the update rule can
+move a constant tuned elsewhere — re-sweep dependent hyperparameters rather than
+trusting the old value. The log-loss curve is flat from 50–70, so the exact
+value barely matters (and the tuning-on-test caveat still stands).
+
+### Honest impact (walk-forward, 22,798 held-out games)
+| Model | Before (win/loss Elo) | After (MOV Elo) |
+|---|---|---|
+| Elo | 0.6165 | **0.6104** |
+| Logistic | 0.6077 | **0.6066** |
+| XGBoost | 0.6213 | 0.6195 |
+
+A real, no-new-data gain that flows through the whole stack. SHAP's no-leakage
+signal holds (top feature still only ~24% of importance).

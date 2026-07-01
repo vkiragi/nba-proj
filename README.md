@@ -69,9 +69,9 @@ Full table: [`docs/results.md`](docs/results.md) · calibration:
 | Model | Log loss | Accuracy |
 |---|---|---|
 | Base rate | 0.6813 | 57.7% |
-| Elo | 0.6165 | 65.8% |
-| **Logistic** (Elo + form/rest + roster) | **0.6077** | **66.8%** |
-| XGBoost | 0.6213 | 65.9% |
+| Elo (margin-of-victory) | 0.6104 | 66.4% |
+| **Logistic** (Elo + form/rest + roster) | **0.6066** | **66.8%** |
+| XGBoost | 0.6195 | 66.1% |
 
 Regenerate: `PYTHONPATH=src uv run python scripts/results_table.py`
 (also `calibration_report.py`, `shap_report.py`).
@@ -89,5 +89,6 @@ Build: `PYTHONPATH=src uv run python -m nba_pred.ingest.odds && PYTHONPATH=src u
 
 Done: ingestion, leakage-safe features, Elo/logistic/XGBoost through a
 walk-forward harness, calibration, SHAP, an honest betting backtest, and a
-Streamlit frontend — all leakage-tested (37 tests). **Next (optional):**
-Dockerize + deploy the app / a FastAPI service.
+Streamlit frontend — all leakage-tested (43 tests). Elo now uses
+margin-of-victory scaling (538's formula), which lifts every model. **Next
+(optional):** Dockerize + deploy the app / a FastAPI service.
