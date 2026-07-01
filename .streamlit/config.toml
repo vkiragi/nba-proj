@@ -1,0 +1,7 @@
+# Streamlit Community Cloud config.
+[theme]
+base = "dark"
+primaryColor = "#e03a3e"          # NBA red
+
+[server]
+headless = true

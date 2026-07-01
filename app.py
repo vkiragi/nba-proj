@@ -10,7 +10,13 @@ Run:  PYTHONPATH=src uv run streamlit run app.py
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+
+# Make `nba_pred` importable without PYTHONPATH=src (Streamlit Cloud runs
+# `streamlit run app.py` from the repo root and won't set it). Local runs with
+# PYTHONPATH=src still work — this insert is harmless when src is already found.
+sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 import streamlit as st
 
