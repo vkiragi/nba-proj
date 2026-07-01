@@ -1,8 +1,10 @@
 # NBA Win-Probability Prediction
 
+### 🔗 [**Live demo → nba-win-probability.streamlit.app**](https://nba-win-probability.streamlit.app/)
+
 An end-to-end ML system that predicts win probabilities for NBA games — validated
-honestly against time, calibrated, and (eventually) deployed as a live service,
-benchmarked against the Vegas closing line.
+honestly against time, calibrated, deployed as a live Streamlit app, and
+benchmarked against the betting market.
 
 See [`nba_prediction_project_plan.md`](./nba_prediction_project_plan.md) for the full plan.
 
