@@ -21,6 +21,9 @@ mlartifacts/
 .env
 .env.*
 
+# Private / never-commit notes (interview prep, personal writeups)
+private/
+
 # OS / editor
 .DS_Store
 .vscode/

@@ -229,21 +229,6 @@ with story_tab:
         "Claiming otherwise would be the red flag."
     )
 
-    with st.expander("🐛 The best debugging story in this project: a fake +6.3% ROI"):
-        st.markdown(
-            "The first betting backtest showed a **+6.3% ROI** at high edge "
-            "thresholds — which should set off alarms, not celebration (beating the "
-            "market usually means you're leaking or buggy until proven otherwise).\n\n"
-            "The root cause: I aggregated multiple sportsbooks by taking the "
-            "**median of the American odds**. American odds are *discontinuous* "
-            "around ±100 — they jump from +100 to -100 with an impossible gap "
-            "between — so `median(-116, +100) = -8`, a fabricated line implying a "
-            "~100× payout that faked the profit.\n\n"
-            "**Fix:** never average American odds. Convert to probabilities "
-            "(continuous), average there, then convert back. The fake edge vanished "
-            "— leaving the honest, efficient-market result above."
-        )
-
     with st.expander("Caveats (stated up front, on purpose)"):
         st.markdown(
             "- Odds are a multi-book **consensus**, not timestamped closing lines — "

@@ -190,18 +190,11 @@ Source: ehallmar's Kaggle "NBA Historical Stats and Betting Data" (moneyline +
 games + teams). Their team_ids are the official NBA ids we use; game_id matches
 ours when zero-padded to 10 chars. Coverage ~2006-2018, 95.6% of in-era games.
 
-### A "profitable system" that was actually a data bug (the best story here)
-First run showed **+6.3% ROI** at high edge thresholds — which should set off
-alarms (the plan: beating the market means you're leaking or buggy until proven
-otherwise). Investigation found two issues:
-1. A divide-by-zero from odds of `0` / `-1` / `-8` — impossible American lines.
-2. The root cause: I aggregated multiple books by taking the **median of American
-   odds**. American odds are *discontinuous* around +/-100 (they jump from +100 to
-   -100 with an impossible gap between), so `median(-116, 100) = -8` — a fabricated
-   line that implied a ~100x payout and faked the profit.
-
-**Fix:** never average American odds. Aggregate in probability space (continuous),
-then convert back with `prob_to_american`. After the fix, the fake edge vanished.
+### Aggregating odds correctly (a subtle data trap)
+Multiple sportsbooks are combined by aggregating in **probability space**, not by
+averaging the American odds directly — American odds are discontinuous around
+±100, so averaging them can fabricate impossible lines. Convert to implied
+probabilities, aggregate, then convert back with `prob_to_american`.
 
 ### The honest result
 - Market log loss **0.5799** beats our model's **0.5983** on the same games.
