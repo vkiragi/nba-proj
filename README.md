@@ -89,6 +89,9 @@ Build: `PYTHONPATH=src uv run python -m nba_pred.ingest.odds && PYTHONPATH=src u
 
 Done: ingestion, leakage-safe features, Elo/logistic/XGBoost through a
 walk-forward harness, calibration, SHAP, an honest betting backtest, and a
-Streamlit frontend — all leakage-tested (43 tests). Elo now uses
-margin-of-victory scaling (538's formula), which lifts every model. **Next
-(optional):** Dockerize + deploy the app / a FastAPI service.
+deployed Streamlit frontend — all leakage-tested (43 tests). Elo uses
+margin-of-victory scaling (538's formula), which lifts every model. The app
+includes a **season report card**: game-by-game out-of-sample predictions vs.
+actual results, with calibration-in-practice per season
+(`scripts/backtest_predictions.py`). **Next (optional):** Dockerize / a FastAPI
+service.
