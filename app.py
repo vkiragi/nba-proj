@@ -18,6 +18,7 @@ from pathlib import Path
 # PYTHONPATH=src still work — this insert is harmless when src is already found.
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
+import pandas as pd
 import streamlit as st
 
 from nba_pred.serve import Predictor
@@ -31,10 +32,6 @@ st.set_page_config(page_title="NBA Win Probability", page_icon="🏀", layout="c
 @st.cache_resource
 def load_predictor() -> Predictor:
     return Predictor()
-
-
-def _read(path: Path) -> str:
-    return path.read_text() if path.exists() else f"_(missing {path.name})_"
 
 
 st.title("🏀 NBA Win-Probability Predictor")
@@ -126,39 +123,133 @@ with predict_tab:
 
 with story_tab:
     st.markdown(
-        "This project's selling point is **honesty**, not a flashy accuracy number. "
-        "Everything below is evaluated walk-forward (train on the past, test on the "
-        "future) with no data leakage."
+        "#### An NBA win-probability model, built to be *trusted* — not to look flashy."
+    )
+    st.markdown(
+        "Most hobby sports predictors quietly leak future information and report a "
+        "fake accuracy number. This one is built the opposite way: every result "
+        "below is measured **walk-forward** (train on the past, test on the future "
+        "it has never seen) with an automated test guarding against data leakage. "
+        "The goal is a probability you can believe, benchmarked honestly against a "
+        "strong baseline and the betting market."
     )
 
-    st.header("Beat-the-baselines")
-    st.markdown(_read(DOCS / "results.md"))
+    # --- Headline numbers, up front -----------------------------------------
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Best model — log loss", "0.607", help="Lower is better. The primary metric (a proper scoring rule), not accuracy.")
+    m2.metric("Accuracy", "66.8%", help="Secondary metric. Sanity check, not the headline — accuracy is easy to game.")
+    m3.metric("Held-out games", "22,798", help="Every prediction is on a season the model was never trained on (2007-08 → 2025-26).")
+    st.caption(
+        "Evaluated over 19 held-out seasons. Beats the base-rate baseline in "
+        "**19 of 19** seasons."
+    )
 
-    st.header("Calibration")
+    st.divider()
+
+    # --- Results table (built natively for a cleaner look) ------------------
+    st.subheader("How the models stack up")
     st.markdown(
-        "Does “70%” actually mean 70%? A reliability curve on the diagonal = yes. "
-        "Our raw models are already well-calibrated."
+        "Every model runs through the *same* walk-forward harness, so the "
+        "comparison is apples-to-apples. **Lower log loss is better.**"
+    )
+    results = pd.DataFrame(
+        [
+            ["Logistic regression (Elo + form/rest/roster)", 0.6066, 0.668, "Best — as-of features add real signal on top of Elo"],
+            ["Elo (margin-of-victory)", 0.6104, 0.664, "Strong baseline; a single strength number per team"],
+            ["XGBoost", 0.6195, 0.661, "Overfits a small, smooth feature set — fancier isn't better"],
+            ["Base rate (always pick home)", 0.6813, 0.577, "The floor every model must clear"],
+        ],
+        columns=["Model", "Log loss", "Accuracy", "What it shows"],
+    )
+    st.dataframe(
+        results,
+        hide_index=True,
+        width="stretch",
+        column_config={
+            "Log loss": st.column_config.NumberColumn(format="%.4f"),
+            "Accuracy": st.column_config.NumberColumn(format="%.1f%%"),
+        },
+    )
+    st.info(
+        "**The honest headline:** a well-calibrated logistic model that beats a "
+        "strong Elo baseline — evaluated without leakage. Not a 90%-accuracy claim "
+        "(those are almost always a leak).",
+        icon="✅",
+    )
+
+    st.divider()
+
+    # --- Calibration --------------------------------------------------------
+    st.subheader("Does “70%” actually mean 70%?")
+    st.markdown(
+        "A probability is only useful if it's **calibrated** — when the model says "
+        "70%, the home team should win about 70% of the time. Plotting predicted vs. "
+        "actual, a perfectly calibrated model sits on the diagonal. Ours already does, "
+        "so extra calibration steps didn't help (a *finding*, not a failure)."
     )
     cal = DOCS / "calibration.png"
     if cal.exists():
-        st.image(str(cal))
+        st.image(str(cal), caption="Reliability curve — close to the diagonal is good.")
 
-    st.header("What drives predictions (SHAP)")
-    st.caption(
-        "**SHAP** (from game theory's Shapley values) splits a prediction into how "
-        "much each feature pushed it up or down — opening the model's black box."
+    st.divider()
+
+    # --- SHAP ---------------------------------------------------------------
+    st.subheader("What actually drives a prediction?")
+    st.markdown(
+        "**SHAP** (from game theory's Shapley values) opens the black box: it splits "
+        "each prediction into how much every feature pushed it up or down. Team "
+        "strength (Elo) leads, then recent form, then rest."
     )
     st.markdown(
-        "Team strength (Elo) dominates, then recent form, then rest. No single "
-        "feature dominates — a sign there's no leakage."
+        "This doubles as a **leakage check**: the top feature holds only ~24% of the "
+        "total importance. If one feature dominated (80%+), that would scream a leak. "
+        "It doesn't — a healthy sign."
     )
     shap_img = DOCS / "shap_summary.png"
     if shap_img.exists():
-        st.image(str(shap_img))
+        st.image(str(shap_img), caption="Feature importance — no single feature dominates.")
 
-    st.header("Betting backtest vs the market")
-    st.caption(
-        "**Vig** = the sportsbook's built-in commission. At -110 odds you must win "
-        "~52.4% (not 50%) of bets just to break even — the house edge you have to beat first."
+    st.divider()
+
+    # --- Betting ------------------------------------------------------------
+    st.subheader("Can it beat the betting market?")
+    st.markdown(
+        "The toughest benchmark there is. The **vig** is the sportsbook's built-in "
+        "commission — at -110 odds you must win ~**52.4%** of bets (not 50%) just to "
+        "break even. That's the edge you have to beat *before* you make a cent."
     )
-    st.markdown(_read(DOCS / "betting.md"))
+
+    b1, b2 = st.columns(2)
+    b1.metric("Our model — log loss", "0.5965")
+    b2.metric("The market — log loss", "0.5799", delta="market wins", delta_color="inverse")
+    st.markdown(
+        "**The market wins — and that's the right answer.** Flat-stake ROI is "
+        "negative across almost every edge threshold: no exploitable edge after the "
+        "vig. An efficient market is *supposed* to be unbeatable by a simple model. "
+        "Claiming otherwise would be the red flag."
+    )
+
+    with st.expander("🐛 The best debugging story in this project: a fake +6.3% ROI"):
+        st.markdown(
+            "The first betting backtest showed a **+6.3% ROI** at high edge "
+            "thresholds — which should set off alarms, not celebration (beating the "
+            "market usually means you're leaking or buggy until proven otherwise).\n\n"
+            "The root cause: I aggregated multiple sportsbooks by taking the "
+            "**median of the American odds**. American odds are *discontinuous* "
+            "around ±100 — they jump from +100 to -100 with an impossible gap "
+            "between — so `median(-116, +100) = -8`, a fabricated line implying a "
+            "~100× payout that faked the profit.\n\n"
+            "**Fix:** never average American odds. Convert to probabilities "
+            "(continuous), average there, then convert back. The fake edge vanished "
+            "— leaving the honest, efficient-market result above."
+        )
+
+    with st.expander("Caveats (stated up front, on purpose)"):
+        st.markdown(
+            "- Odds are a multi-book **consensus**, not timestamped closing lines — "
+            "so this measures edge-vs-consensus, not true closing-line value.\n"
+            "- Betting data covers **2006–2018** only.\n"
+            "- Transaction costs and line-shopping are idealized.\n"
+            "- Predictions use team strengths **frozen** at the end of the data; "
+            "this is a hypothetical-matchup demo, not a live forecast."
+        )
