@@ -1,33 +1,31 @@
-"""Betting backtest — BLOCKED on odds data (not yet implemented).
+"""Betting backtest — simulate betting our calibrated probabilities vs the market.
 
-This is the plan's "domain flex": simulate betting our calibrated probabilities
-against historical closing lines, accounting for the vig, reporting ROI and
-closing-line value (CLV). It is intentionally a stub: it needs a historical odds
-dataset that we don't have yet, and obtaining one requires a user decision.
+This is the project's "domain flex": we place flat-stake bets whenever our
+calibrated P(home win) beats the market's de-vigged implied probability by an
+edge threshold, then report ROI, record, and bet rate. `betting_backtest` below
+is the entry point; the helpers around it handle the American-odds arithmetic.
 
-## What's needed to unblock
-An odds source joined to our game spine on (game_date, home_team, away_team):
-  - sportsbookreviewsonline historical spreadsheets (free, manual download), or
-  - OddsPortal scrape (respect ToS / rate limits), or
-  - the-odds-api (free tier; going-forward only, needs an API key).
+## Odds source (see ingest/odds.py)
+Market lines come from the Kaggle historical-odds dataset, aggregated in
+probability space into a per-game multi-book *consensus*. Two honest caveats:
+  - Coverage is ~2006-11 to 2018-06 only, so the backtest runs on the overlap
+    between our predictions and those seasons.
+  - These are consensus lines, NOT timestamped closing lines, so this measures
+    edge vs the consensus market, not true closing-line value (CLV).
 
-Target schema for `data/processed/odds.parquet`:
-    game_id, home_ml_close, away_ml_close   (American odds, e.g. -150 / +130)
-optionally open lines too, to measure CLV against the close.
-
-## The math, ready to implement once odds exist
+## The math
 - American odds -> implied prob: for negative o, p = -o/(-o+100); for positive
-  o, p = 100/(o+100). The book's two implied probs sum to >1 — that excess is
-  the vig. De-vig by normalizing so they sum to 1.
-- Edge: bet when our calibrated p_home exceeds the de-vigged implied prob by a
-  threshold. At -110 both sides, breakeven win rate is ~52.4%.
-- Report flat-stake ROI, record, and CLV (did we beat the closing number?).
+  o, p = 100/(o+100). A book's two implied probs sum to >1 — that excess is the
+  vig. De-vig by normalizing so they sum to 1 (done in ingest).
+- Edge: bet the side where our calibrated prob exceeds the de-vigged implied
+  prob by more than `edge_threshold`. At -110 both sides, breakeven win rate is
+  ~52.4%.
+- Payouts use the consensus American line per side; we report flat-stake ROI.
 
 ## Honest expectation
-We very likely do NOT beat the closing line after vig. "Well-calibrated but no
-edge vs the market" is the correct, respectable conclusion (efficient markets) —
-NOT a failure. Overclaiming a profitable system is the fastest way to lose
-credibility.
+We very likely do NOT beat the market after vig. "Well-calibrated but no edge vs
+the market" is the correct, respectable conclusion (efficient markets) — NOT a
+failure. Overclaiming a profitable system is the fastest way to lose credibility.
 """
 
 from __future__ import annotations

@@ -45,6 +45,11 @@ packages = ["src/nba_pred"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+filterwarnings = [
+    # Synthetic test fixtures carry no player stats, so the all-NaN roster_strength
+    # columns get skipped by SimpleImputer. Expected and harmless in tests.
+    "ignore:Skipping features without any observed values:UserWarning",
+]
 
 [tool.ruff]
 line-length = 100
