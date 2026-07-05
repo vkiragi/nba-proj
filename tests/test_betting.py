@@ -59,3 +59,11 @@ def test_betting_backtest_no_bets_when_no_edge():
     odds = pd.DataFrame({"game_id": ["g1"], "market_p_home": [0.5], "home_ml": [-110.0], "away_ml": [-110.0]})
     r = betting_backtest(preds, odds, edge_threshold=0.05)
     assert r["n_bets"] == 0
+
+
+def test_betting_backtest_rejects_negative_threshold():
+    # A negative threshold could flag both sides of one game, so it's disallowed.
+    preds = pd.DataFrame({"game_id": ["g1"], "p": [0.5], "home_win": [1]})
+    odds = pd.DataFrame({"game_id": ["g1"], "market_p_home": [0.5], "home_ml": [-110.0], "away_ml": [-110.0]})
+    with pytest.raises(ValueError):
+        betting_backtest(preds, odds, edge_threshold=-0.01)

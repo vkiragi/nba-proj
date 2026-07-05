@@ -89,9 +89,14 @@ def betting_backtest(
     market's de-vigged probability by more than `edge_threshold`, staking a flat
     amount at that side's American price. Returns ROI, record, and summary stats.
 
+    `edge_threshold` must be >= 0: the home/away sides are mutually exclusive
+    only when it is (a negative threshold could flag both sides of one game).
+
     NOTE: `market_p_home` is a multi-book consensus, not a timestamped close, so
     this is "edge vs the consensus market", not true closing-line value (CLV).
     """
+    if edge_threshold < 0:
+        raise ValueError(f"edge_threshold must be >= 0, got {edge_threshold!r}")
     df = predictions.merge(odds, on="game_id", how="inner")
     if df.empty:
         return {"n_games": 0, "n_bets": 0, "note": "no overlap between predictions and odds"}
